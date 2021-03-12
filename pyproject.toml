@@ -3,7 +3,7 @@ name = "knockknock"
 version = "0.1.0"
 description = "Password resets for GCCIS students"
 authors = ["William Leuschner <wel2138@rit.edu>"]
-license = "MIT"
+license = "ISC"
 
 [tool.poetry.dependencies]
 python = "^3.7"
