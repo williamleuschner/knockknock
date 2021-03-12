@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "knockknock"
+version = "0.1.0"
+description = "Password resets for GCCIS students"
+authors = ["William Leuschner <wel2138@rit.edu>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.7"
+Flask = "^1.1.2"
+python3-saml = "^1.10.1"
+ldap3 = "^2.9"
+
+[tool.poetry.dev-dependencies]
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
