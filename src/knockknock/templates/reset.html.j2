@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Password Reset</title>
+</head>
+<body>
+    {% if error %}
+    <div style="color: red;">
+        Error: {{ error }}
+    </div>
+    {% endif %}
+    <form action="/reset" method="POST">
+        <label for="password">Password:</label>
+        <input id="password" name="password" type="password" required minlength="8">
+        <br>
+        <label for="confirmPassword">Confirm Password:</label>
+        <input id="confirmPassword" name="confirmPassword" type="password" required minlength="8">
+
+        <input type="submit" name="submit">
+    </form>
+</body>
+</html>
