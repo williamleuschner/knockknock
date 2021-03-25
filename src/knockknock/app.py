@@ -40,32 +40,36 @@ def reset_page():
 def do_reset():
     """Handle the password reset request."""
     request = flask.request
+    errors = []
     if "password" not in request.form:
-        return flask.render_template(
-            "reset.html.j2", error="missing request parameter: password"
-        )
+        errors.append("missing request parameter: password")
     if "confirmPassword" not in request.form:
-        return flask.render_template(
-            "reset.html.j2", error="missing request parameter: confirmPassword"
-        )
+        errors.append("missing request parameter: confirmPassword")
+    # The two errors above this point are fatal and prevent other checks from
+    # succeeding.
+    if len(errors) > 0:
+        return flask.render_template("reset.html.j2", errors=errors)
+
     password = request.form["password"]
     confirm = request.form["confirmPassword"]
     if password != confirm:
-        return flask.render_template(
-            "reset.html.j2",
-            error="The passwords you entered didn’t match. Please try again.",
-        )
-    # TODO: check password against character class rules
+        errors.append("The passwords you entered didn’t match.")
+    if len(password) < 10:
+        errors.append("Your password must be at least 10 characters long.")
+    # TODO: check password against character class rules, pending discussion
+    # about NIST guidelines
     breach_count = knockknock.hibp.check_password(password)
     if breach_count > 0:
-        return flask.render_template(
-            "reset.html.j2",
-            error="The password you entered has been found in {} prior data breaches.  Please choose a new one.".format(
+        errors.append(
+            "The password you chose has been found in {} prior data breaches.".format(
                 breach_count
-            ),
+            )
         )
-
-    return flask.redirect(flask.url_for("success_page"))
+    if len(errors) > 0:
+        return flask.render_template("reset.html.j2", errors=errors)
+    else:
+        # TODO: use LDAP to change password
+        return flask.redirect(flask.url_for("success_page"))
 
 
 @app.route("/success")

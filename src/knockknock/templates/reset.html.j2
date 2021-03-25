@@ -5,18 +5,31 @@
 <title>Password Reset</title>
 </head>
 <body>
-    {% if error %}
+    {% if errors %}
+    {% if errors|length == 1 %}
     <div style="color: red;">
-        Error: {{ error }}
+        Error: {{ errors[0] }}
     </div>
+    {% else %}
+    <div style="color: red;">
+        Errors:
+        <ul>
+            {% for error in errors %}
+            <li>{{ error }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
     {% endif %}
     <form action="/reset" method="POST">
         <label for="password">Password:</label>
-        <input id="password" name="password" type="password" required minlength="8">
+        <input id="password" name="password" type="password" required
+        minlength="10">
         <br>
         <label for="confirmPassword">Confirm Password:</label>
-        <input id="confirmPassword" name="confirmPassword" type="password" required minlength="8">
+        <input id="confirmPassword" name="confirmPassword" type="password" required minlength="10">
 
+        <br>
         <input type="submit" name="submit">
     </form>
 </body>
