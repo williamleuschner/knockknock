@@ -61,8 +61,9 @@ def do_reset():
     breach_count = knockknock.hibp.check_password(password)
     if breach_count > 0:
         errors.append(
-            "The password you chose has been found in {} prior data breaches.".format(
-                breach_count
+            "The password you chose has been found {} time{} in prior data breaches. (If you’re using that password on other websites, you should change it on all of them.)".format(
+                breach_count,
+                "s" if breach_count > 1 else ""
             )
         )
     if len(errors) > 0:
