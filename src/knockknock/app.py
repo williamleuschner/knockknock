@@ -3,16 +3,6 @@ import knockknock.hibp
 
 app = flask.Flask(__name__)
 
-# Authentication notes:
-# Werkzeug puts an authorization object into flask.request that I can use to
-# check for HTTP Basic credentials.
-# The OneLogin SAML library hook can easily be used to set something in the
-# session.
-# I can define a decorator function that checks the session object for which
-# kind of auth the user is logged in using, and then verifies that they have it.
-# Flask cryptographically signs the session cookie, so the user can't tamper
-# with it.
-
 
 @app.route("/")
 def main_page():
