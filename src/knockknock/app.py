@@ -1,7 +1,9 @@
 import flask
 import knockknock.hibp
+import knockknock.auth
 
 app = flask.Flask(__name__)
+app.register_blueprint(knockknock.auth.bp)
 
 
 @app.route("/")
@@ -11,20 +13,6 @@ def main_page():
     This page asks whether to log in via department credentials or via RIT SSO.
     """
     return flask.render_template("choose_login.html.j2")
-
-
-@app.route("/login-dept")
-def department_login():
-    """Ask for department credentials, then redirect to the reset page."""
-    return flask.redirect(flask.url_for("reset_page"))
-
-
-@app.route("/login-sso")
-def sso_login():
-    """Bounce the user through SAML authentication, then redirect to the reset
-    page.
-    """
-    return flask.redirect(flask.url_for("reset_page"))
 
 
 @app.route("/reset", methods=["GET"])

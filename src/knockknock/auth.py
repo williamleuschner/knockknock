@@ -52,14 +52,32 @@ def login_required(view):
     return wrapped_view
 
 
+def make_401():
+    resp = flask.make_response("Credentials required.", 401)
+    resp.headers["WWW-Authenticate"] = "Basic realm=KnockKnock Authorization"
+    return resp
+
+
 @bp.route("/dept")
 def department_login():
     """Ask for department credentials, then redirect to the reset page."""
-    # TODO: set session variables username, method, date
-    # TODO: return 403
-    # TODO: figure out how to keep track of password attempt count and return
-    # 401 after 3 failures
-    return flask.redirect(flask.url_for("reset"))
+    auth = flask.request.authorization
+    if auth is None or auth.username is None or auth.password is None:
+        return make_401()
+    # TODO: check password with LDAP
+    password_match = False
+    if password_match:
+        flask.session["username"] = auth.username
+        flask.session["method"] = LoginMethod.SSO
+        flask.session["date"] = datetime.datetime.now()
+        return flask.redirect(flask.url_for("reset"))
+    else:
+        guess_count = flask.session.get("ldap_password_guesses", 0)
+        if guess_count < 3:
+            flask.session["ldap_password_guesses"] = guess_count + 1
+            return make_401()
+        else:
+            return "403 Unauthorized", 403
 
 
 @bp.route("/sso")
