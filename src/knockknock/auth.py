@@ -77,6 +77,9 @@ def department_login():
             flask.session["ldap_password_guesses"] = guess_count + 1
             return make_401()
         else:
+            # If you don't do this, people get stuck until they clear their
+            # cookies.
+            flask.session["ldap_password_guesses"] = 0
             return "403 Unauthorized", 403
 
 
