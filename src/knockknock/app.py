@@ -4,6 +4,10 @@ import knockknock.auth
 
 app = flask.Flask(__name__)
 app.register_blueprint(knockknock.auth.bp)
+# app.config.update(
+#     SESSION_COOKIE_SECURE=True,
+#     SESSION_COOKIE_SAMESITE="Strict",
+# )
 
 
 @app.route("/")
@@ -70,3 +74,8 @@ def success_page():
 def error_page():
     """Display a useful error message to the user."""
     return "Error page."
+
+
+if app.debug:
+    print("WARNING: Running in development mode with insecure session key")
+    app.secret_key = "THIS_IS_INSECURE"
