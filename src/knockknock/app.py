@@ -1,6 +1,7 @@
 import flask
 import knockknock.hibp
 import knockknock.auth
+import knockknock.config
 
 app = flask.Flask(__name__)
 app.register_blueprint(knockknock.auth.bp)
@@ -8,6 +9,10 @@ app.register_blueprint(knockknock.auth.bp)
 #     SESSION_COOKIE_SECURE=True,
 #     SESSION_COOKIE_SAMESITE="Strict",
 # )
+
+
+def get_active_config():
+    return knockknock.config.Config()
 
 
 @app.route("/")
