@@ -1,6 +1,7 @@
 import ldap3
 import ssl
 from knockknock.config import Config
+from typing import Optional
 
 
 class LDAPClient:
@@ -18,11 +19,30 @@ class LDAPClient:
             self.tls = ldap3.Tls(validate=ssl.CERT_NONE)
         else:
             self.tls = ldap3.Tls()
-        self.server = ldap3.Server(self.config.url, tls=self.tls)
+        self.server = ldap3.Server(self.config.ldap_url, tls=self.tls)
+
+    def find_dn(self, username: str) -> Optional[str]:
+        with ldap3.Connection(
+            self.server,
+            user=self.config.ldap_username,
+            password=self.config.ldap_password,
+        ) as connection:
+            search_filter = self.config.ldap_filter.format(uid=username)
+            connection.search(
+                self.config.ldap_base,
+                "({filter})".format(filter=search_filter),
+                ldap3.SUBTREE,
+            )
+            if connection.response and len(connection.response) > 0:
+                return connection.response[0]["dn"]
+            else:
+                return None
 
     def check_password(self, username: str, password: str) -> bool:
         with ldap3.Connection(
-            self.server, user=self.config.username, password=self.config.password
+            self.server,
+            user=username,
+            password=password,
         ) as connection:
             # Bind returns true if the password is valid and false if it
             # isn't.  It throws an exception when there's a connection
