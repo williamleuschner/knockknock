@@ -4,7 +4,7 @@ from enum import Enum
 import datetime
 import knockknock.app
 from knockknock.ldap import LDAPClient
-import ldap3
+import ldap3.core.exceptions
 
 bp = flask.Blueprint("auth", __name__, url_prefix="/auth")
 
@@ -71,7 +71,7 @@ def department_login():
     c = LDAPClient(knockknock.app.get_active_config())
     try:
         password_match = c.check_password(auth.username, auth.password)
-    except ldap3.LDAPException as e:
+    except ldap3.core.exceptions.LDAPException as e:
         return flask.render_template("error.html.j2", message=e)
     if password_match:
         flask.session["username"] = auth.username
