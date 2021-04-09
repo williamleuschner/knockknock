@@ -97,4 +97,4 @@ def sso_login():
     """
     # TODO: hook up OneLogin's SAML toolkit here, probably with several
     # additional endpoints.
-    return flask.redirect(flask.url_for("reset"))
+    return flask.redirect(flask.url_for("do_reset"))

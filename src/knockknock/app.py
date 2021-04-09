@@ -1,9 +1,18 @@
 import flask
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 import knockknock.hibp
 import knockknock.auth
 import knockknock.config
 
 app = flask.Flask(__name__)
+limiter = Limiter(
+    app,
+    key_func=get_remote_address,
+    default_limits=["10 per second"]
+)
+# Only allow one request per user per second on the authentication endpoints.
+limiter.limit("1 per second")(knockknock.auth.bp)
 app.register_blueprint(knockknock.auth.bp)
 # app.config.update(
 #     SESSION_COOKIE_SECURE=True,
@@ -26,6 +35,7 @@ def main_page():
 
 
 @app.route("/reset", methods=["GET"])
+@limiter.limit("1 per second")
 def reset_page():
     """Render the password reset page.
 
@@ -35,6 +45,7 @@ def reset_page():
 
 
 @app.route("/reset", methods=["POST"])
+@limiter.limit("1 per second")
 def do_reset():
     """Handle the password reset request."""
     request = flask.request

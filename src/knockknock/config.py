@@ -15,7 +15,6 @@ class Config:
     OPTION_PASSWORD = "password"
     OPTION_BASE = "base"
     OPTION_FILTER = "filter"
-    OPTION_WEAK_CIPHERS = "use_extremely_weak_ciphers"
     OPTION_NO_CERT_CHECK = "no_certificate_checks"
     OPTION_SHORT_DEPT = "short_department_name"
     OPTION_LONG_DEPT = "long_department_name"
@@ -61,8 +60,6 @@ class Config:
                         Config.SECTION_SITE, option
                     )
                 )
-        if not parser.has_option(Config.SECTION_LDAP, Config.OPTION_WEAK_CIPHERS):
-            parser[Config.SECTION_LDAP][Config.OPTION_WEAK_CIPHERS] = "False"
         if not parser.has_option(Config.SECTION_LDAP, Config.OPTION_NO_CERT_CHECK):
             parser[Config.SECTION_LDAP][Config.OPTION_NO_CERT_CHECK] = "False"
 
@@ -77,9 +74,6 @@ class Config:
             self.ldap_password = parser[Config.SECTION_LDAP][Config.OPTION_PASSWORD]
             self.ldap_base = parser[Config.SECTION_LDAP][Config.OPTION_BASE]
             self.ldap_filter = parser[Config.SECTION_LDAP][Config.OPTION_FILTER]
-            self.use_extremely_weak_ciphers = parser[Config.SECTION_LDAP].getboolean(
-                Config.OPTION_WEAK_CIPHERS
-            )
             self.no_certificate_checks = parser[Config.SECTION_LDAP].getboolean(
                 Config.OPTION_NO_CERT_CHECK
             )
