@@ -27,7 +27,9 @@ class LDAPClient:
         self.server = ldap3.Server(self.config.ldap_url, tls=self.tls)
         logger.debug("initialized client for {url}".format(url=self.config.ldap_url))
 
-    def find_dn_using_connection(self, username: str, connection: ldap3.Connection) -> Optional[str]:
+    def find_dn_using_connection(
+        self, username: str, connection: ldap3.Connection
+    ) -> Optional[str]:
         """Find the distinguished name for a particular user in LDAP.
         This function will raise an LDAPUserNotUnique exception if multiple
         records are returned for a single username, because there is not a
@@ -79,9 +81,9 @@ class LDAPClient:
         :return: The user's distinguished name, or None if the user is not in LDAP.
         """
         with ldap3.Connection(
-                self.server,
-                user=self.config.ldap_username,
-                password=self.config.ldap_password,
+            self.server,
+            user=self.config.ldap_username,
+            password=self.config.ldap_password,
         ) as connection:
             connection.bind()
             return self.find_dn_using_connection(username, connection)
