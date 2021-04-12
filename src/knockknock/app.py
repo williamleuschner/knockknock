@@ -4,13 +4,14 @@ from flask_limiter.util import get_remote_address
 import knockknock.hibp
 import knockknock.auth
 import knockknock.config
+from knockknock.ldap import LDAPClient
+from ldap3.core.exceptions import LDAPException
+import logging
+
+logger = logging.getLogger(__name__)
 
 app = flask.Flask(__name__)
-limiter = Limiter(
-    app,
-    key_func=get_remote_address,
-    default_limits=["10 per second"]
-)
+limiter = Limiter(app, key_func=get_remote_address, default_limits=["10 per second"])
 # Only allow one request per user per second on the authentication endpoints.
 limiter.limit("1 per second")(knockknock.auth.bp)
 app.register_blueprint(knockknock.auth.bp)
@@ -36,6 +37,7 @@ def main_page():
 
 @app.route("/reset", methods=["GET"])
 @limiter.limit("1 per second")
+@knockknock.auth.login_required
 def reset_page():
     """Render the password reset page.
 
@@ -46,6 +48,7 @@ def reset_page():
 
 @app.route("/reset", methods=["POST"])
 @limiter.limit("1 per second")
+@knockknock.auth.login_required
 def do_reset():
     """Handle the password reset request."""
     request = flask.request
@@ -77,20 +80,23 @@ def do_reset():
     if len(errors) > 0:
         return flask.render_template("reset.html.j2", errors=errors)
     else:
-        # TODO: use LDAP to change password
-        return flask.redirect(flask.url_for("success_page"))
+        c = LDAPClient(get_active_config())
+        try:
+            c.reset_password(flask.session["username"], password)
+            del flask.session["username"]
+            del flask.session["method"]
+            del flask.session["date"]
+            return flask.redirect(flask.url_for("success_page"))
+        except LDAPException as e:
+            logger.exception(e)
+            errors.append(e)
+            return flask.render_template("error.html.j2", message=e)
 
 
 @app.route("/success")
 def success_page():
     """Confirm to the user that their password reset succeeded."""
     return "Password was reset!"
-
-
-@app.route("/error")
-def error_page():
-    """Display a useful error message to the user."""
-    return "Error page."
 
 
 if app.debug:

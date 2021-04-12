@@ -5,6 +5,9 @@ import datetime
 import knockknock.app
 from knockknock.ldap import LDAPClient
 import ldap3.core.exceptions
+import logging
+
+logger = logging.getLogger(__name__)
 
 bp = flask.Blueprint("auth", __name__, url_prefix="/auth")
 
@@ -19,13 +22,13 @@ bp = flask.Blueprint("auth", __name__, url_prefix="/auth")
 # with it.
 
 
-class LoginMethod(Enum):
+class LoginMethod(int, Enum):
     SSO = 1
     DEPT = 2
 
 
 def login_required(view):
-    @functools.wrap(view)
+    @functools.wraps(view)
     def wrapped_view(**kwargs):
         """Check if the user has logged in.
         If they have not, bounce them back to the main page so they can log in.
@@ -38,7 +41,7 @@ def login_required(view):
             or flask.g.signin_method is None
             or flask.g.signin_date is None
         ):
-            return flask.redirect(flask.url_for("auth.choose_login"))
+            return flask.redirect(flask.url_for("main_page"))
         # I have arbitrarily decided that 30 minutes is an acceptable limit for
         # session lengths.  It's long enough to not irritate people, even people
         # with motor difficulties, but short enough that session cookie thefts
@@ -49,7 +52,7 @@ def login_required(view):
         if (datetime.datetime.now() - flask.g.signin_date) > datetime.timedelta(
             minutes=30
         ):
-            return flask.redirect(flask.url_for("auth.choose_login"))
+            return flask.redirect(flask.url_for("main_page"))
         return view(**kwargs)
 
     return wrapped_view
@@ -72,12 +75,17 @@ def department_login():
     try:
         password_match = c.check_password(auth.username, auth.password)
     except ldap3.core.exceptions.LDAPException as e:
+        logger.exception(
+            "Encountered exception while checking LDAP password for user "
+            "{username}:".format(username=auth.username)
+        )
+        logger.exception(e)
         return flask.render_template("error.html.j2", message=e)
     if password_match:
         flask.session["username"] = auth.username
         flask.session["method"] = LoginMethod.SSO
         flask.session["date"] = datetime.datetime.now()
-        return flask.redirect(flask.url_for("reset"))
+        return flask.redirect(flask.url_for("do_reset"))
     else:
         guess_count = flask.session.get("ldap_password_guesses", 0)
         if guess_count < 3:
