@@ -15,6 +15,10 @@ class LDAPUserNotUnique(ldap3.core.exceptions.LDAPException):
     pass
 
 
+class LDAPPasswordNotChanged(ldap3.core.exceptions.LDAPException):
+    pass
+
+
 class LDAPClient:
     """A client for accessing an LDAP server."""
 
@@ -64,7 +68,7 @@ class LDAPClient:
         else:
             raise LDAPUserNotUnique(
                 "found {number} results for the username {username} in LDAP; "
-                "unable to determine whose password to reset".format(
+                "unable to determine who you're referring to".format(
                     username=username, number=len(connection.response)
                 )
             )
@@ -91,19 +95,26 @@ class LDAPClient:
     def check_password(self, username: str, password: str) -> bool:
         logger.debug("checking password for {username}".format(username=username))
         dn = self.find_dn(username)
-        with ldap3.Connection(
+        # This one doesn't use the with...as construct because it implicitly
+        # binds the connection *and* throws an exception if the password is bad.
+        connection = ldap3.Connection(
             self.server,
             dn,
             password,
-        ) as connection:
-            logger.debug(str(connection))
-            # Bind returns true if the password is valid and false if it
-            # isn't.  It throws an exception when there's a connection
-            # problem.  This is not documented, but I fooled around with it
-            # in a test shell for a while to figure it out.
-            return connection.bind()
+        )
+        logger.debug(str(connection))
+        # Bind returns true if the password is valid and false if it
+        # isn't.  It throws an exception when there's a connection
+        # problem.  This is not documented, but I fooled around with it
+        # in a test shell for a while to figure it out.
+        result = connection.bind()
+        # Unbind if the connection succeeded, so that we don't leave connections
+        # hanging open on the LDAP server.
+        if result:
+            connection.unbind()
+        return result
 
-    def reset_password(self, username: str, password: str):
+    def reset_password(self, username: str, new_password: str) -> None:
         logger.debug("changing password for {username}".format(username=username))
         with ldap3.Connection(
             self.server,
@@ -115,4 +126,7 @@ class LDAPClient:
             user_dn = self.find_dn_using_connection(username, connection)
             if user_dn is None:
                 raise LDAPUserMissing("{username} is not a registered user")
-            return connection.extend.microsoft.modify_password(user_dn, password)
+            result = connection.extend.microsoft.modify_password(user_dn, new_password)
+            logger.debug("result of password change: {r}".format(r=result))
+            if not result:
+                raise LDAPPasswordNotChanged("the change password method... didn't")
