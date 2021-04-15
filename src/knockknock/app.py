@@ -101,9 +101,10 @@ def do_reset():
 @app.route("/success")
 def success_page():
     """Confirm to the user that their password reset succeeded."""
-    return "Password was reset!"
+    return flask.render_template("success.html.j2")
 
 
 if app.debug:
     print("WARNING: Running in development mode with insecure session key")
     app.secret_key = "THIS_IS_INSECURE"
+    logging.basicConfig(level=logging.DEBUG)
