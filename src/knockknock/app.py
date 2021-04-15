@@ -54,8 +54,10 @@ def do_reset():
     request = flask.request
     errors = []
     if "password" not in request.form:
+        logger.info("no password provided")
         errors.append("missing request parameter: password")
     if "confirmPassword" not in request.form:
+        logger.info("no password confirmation provided")
         errors.append("missing request parameter: confirmPassword")
     # The two errors above this point are fatal and prevent other checks from
     # succeeding.
@@ -65,13 +67,16 @@ def do_reset():
     password = request.form["password"]
     confirm = request.form["confirmPassword"]
     if password != confirm:
+        logger.info("password and confirmPassword didn't match")
         errors.append("The passwords you entered didn’t match.")
     if len(password) < 10:
+        logger.info("password too short")
         errors.append("Your password must be at least 10 characters long.")
     # TODO: check password against character class rules, pending discussion
     # about NIST guidelines
     breach_count = knockknock.hibp.check_password(password)
     if breach_count > 0:
+        logger.info("password found in prior breaches")
         errors.append(
             "The password you chose has been found {} time{} in prior data breaches. (If you’re using that password on other websites, you should change it on all of them.)".format(
                 breach_count, "s" if breach_count > 1 else ""

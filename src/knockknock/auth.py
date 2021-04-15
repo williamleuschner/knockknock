@@ -41,6 +41,7 @@ def login_required(view):
             or flask.g.signin_method is None
             or flask.g.signin_date is None
         ):
+            logger.info("no session cookie, bouncing to main page for login")
             return flask.redirect(flask.url_for("main_page"))
         # I have arbitrarily decided that 30 minutes is an acceptable limit for
         # session lengths.  It's long enough to not irritate people, even people
@@ -52,6 +53,7 @@ def login_required(view):
         if (datetime.datetime.now() - flask.g.signin_date) > datetime.timedelta(
             minutes=30
         ):
+            logger.info("session cookie expired, bouncing to main page for login")
             return flask.redirect(flask.url_for("main_page"))
         return view(**kwargs)
 
@@ -69,8 +71,8 @@ def department_login():
     """Ask for department credentials, then redirect to the reset page."""
     auth = flask.request.authorization
     if auth is None or auth.username is None or auth.password is None:
+        logger.debug("no authorization header present; sending 401")
         return make_401()
-    # TODO: implement that function in knockknock.app
     c = LDAPClient(knockknock.app.get_active_config())
     try:
         password_match = c.check_password(auth.username, auth.password)
@@ -83,8 +85,13 @@ def department_login():
         return flask.render_template("error.html.j2", message=e)
     if password_match:
         flask.session["username"] = auth.username
-        flask.session["method"] = LoginMethod.SSO
+        flask.session["method"] = LoginMethod.DEPT
         flask.session["date"] = datetime.datetime.now()
+        logger.info(
+            "accepted login for {username} using LDAP credentials".format(
+                username=auth.username
+            )
+        )
         return flask.redirect(flask.url_for("do_reset"))
     else:
         guess_count = flask.session.get("ldap_password_guesses", 0)
