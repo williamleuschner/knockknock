@@ -6,6 +6,9 @@ import knockknock.app
 from knockknock.ldap import LDAPClient
 import ldap3.core.exceptions
 import logging
+from urllib.parse import urlparse
+from onelogin.saml2.auth import OneLogin_Saml2_Auth
+from onelogin.saml2.utils import OneLogin_Saml2_Utils
 
 logger = logging.getLogger(__name__)
 
@@ -105,11 +108,103 @@ def department_login():
             return "403 Unauthorized", 403
 
 
-@bp.route("/sso")
-def sso_login():
-    """Bounce the user through SAML authentication, then redirect to the reset
+#############################
+# SAML endpoints below here #
+#############################
+
+
+def init_saml_auth(req):
+    # TODO: fix that reference to app. Maybe put that in the config file?
+    auth = OneLogin_Saml2_Auth(req, custom_base_path=app.config["SAML_PATH"])
+    return auth
+
+
+def prepare_flask_request(req):
+    url_data = urlparse(req.url)
+    return {
+        "https": "on" if req.scheme == "https" else "off",
+        "http_host": req.host,
+        "server_port": url_data.port,
+        "script_name": req.path,
+        "get_data": req.args.copy(),
+        "post_data": req.form.copy(),
+    }
+
+
+@bp.route("/saml/sso")
+def saml_sso():
+    """Redirect clients to the IdP for authentication.
+    SAMLv2 allows SSO flows to begin at the SP.  All this does is bounce the
+    client to the IdP for authentication and tell the IdP where the client
+    should come back to when they're done.
+    """
+    req = prepare_flask_request(flask.request)
+    auth = init_saml_auth(req)
+    return_to = "%sreset" % flask.request.host_url
+    return flask.redirect(auth.login(return_to=return_to))
+
+
+@bp.route("/saml/slo")
+def saml_slo():
+    """Redirect users to the IdP for logout.
+    """
+    req = prepare_flask_request(flask.request)
+    auth = init_saml_auth(req)
+    name_id = flask.session["samlNameId"] if "samlNameId" in flask.session else None
+    session_index = (
+        flask.session["samlSessionIndex"]
+        if "samlSessionIndex" in flask.session
+        else None
+    )
+    return flask.redirect(auth.logout(name_id=name_id, session_index=session_index))
+
+
+@bp.route("/saml/acs")
+def saml_acs():
+    """Consume attributes returned by the IdP and forward the user to the reset
     page.
     """
-    # TODO: hook up OneLogin's SAML toolkit here, probably with several
-    # additional endpoints.
-    return flask.redirect(flask.url_for("do_reset"))
+    req = prepare_flask_request(flask.request)
+    auth = init_saml_auth(req)
+    auth.process_response()
+    errors = auth.get_errors()
+    if len(errors) == 0:
+        if not auth.is_authenticated():
+            flask.session["last_error"] = "RIT's Single-Sign On service says that you're not authenticated!"
+            return flask.redirect(flask.url_for("error"))
+        flask.session["samlUserdata"] = auth.get_attributes()
+        flask.session["samlNameId"] = auth.get_nameid()
+        flask.session["samlSessionIndex"] = auth.get_session_index()
+        flask.session["username"] = flask.session["samlUserdata"].get(
+            "urn:oid:0.9.2342.19200300.100.1.1"
+        )[0]
+        flask.session["log_rows"] = 3
+        if not is_user(flask.session["username"]):
+            flask.session["last_error"] = (
+                "Unfortunately, you're not an authorized user of "
+                "this application."
+            )
+            return flask.redirect(flask.url_for("error"))
+        self_url = OneLogin_Saml2_Utils.get_self_url(req)
+        if (
+            "RelayState" in flask.request.form
+            and self_url != flask.request.form["RelayState"]
+        ):
+            return flask.redirect(auth.redirect_to(flask.request.form["RelayState"]))
+        else:
+            flask.session["last_error"] = "There was an error while handling the SAML response: " + str(auth.get_last_error_reason())
+            return flask.redirect(flask.url_for("error"))
+
+
+@bp.route("/saml/sls")
+def saml_sls():
+    """I haven't figured out what SLS is yet, I think it happens after SLO."""
+    req = prepare_flask_request(flask.request)
+    auth = init_saml_auth(req)
+    url = auth.process_slo(delete_session_cb=lambda: flask.session.clear())
+    errors = auth.get_errors()
+    if len(errors) == 0:
+        if url is not None:
+            return flask.redirect(url)
+        # TODO: this should probably handle errors.
+    return flask.redirect(flask.url_for("main_page"))
