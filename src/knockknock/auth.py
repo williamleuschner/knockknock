@@ -114,8 +114,8 @@ def department_login():
 
 
 def init_saml_auth(req):
-    # TODO: fix that reference to app. Maybe put that in the config file?
-    auth = OneLogin_Saml2_Auth(req, custom_base_path=app.config["SAML_PATH"])
+    config = knockknock.app.get_active_config()
+    auth = OneLogin_Saml2_Auth(req, custom_base_path=config.saml_config_dir)
     return auth
 
 
@@ -134,20 +134,20 @@ def prepare_flask_request(req):
 @bp.route("/saml/sso")
 def saml_sso():
     """Redirect clients to the IdP for authentication.
-    SAMLv2 allows SSO flows to begin at the SP.  All this does is bounce the
+    SAMLv2 allows SSO flows to begin at the SP (as opposed to SAMLv1, which
+    required all SSO flows to begin at the IdP).  All this does is bounce the
     client to the IdP for authentication and tell the IdP where the client
     should come back to when they're done.
     """
     req = prepare_flask_request(flask.request)
     auth = init_saml_auth(req)
-    return_to = "%sreset" % flask.request.host_url
+    return_to = "{}reset".format(flask.request.host_url)
     return flask.redirect(auth.login(return_to=return_to))
 
 
 @bp.route("/saml/slo")
 def saml_slo():
-    """Redirect users to the IdP for logout.
-    """
+    """Redirect users to the IdP for logout."""
     req = prepare_flask_request(flask.request)
     auth = init_saml_auth(req)
     name_id = flask.session["samlNameId"] if "samlNameId" in flask.session else None
@@ -170,21 +170,26 @@ def saml_acs():
     errors = auth.get_errors()
     if len(errors) == 0:
         if not auth.is_authenticated():
-            flask.session["last_error"] = "RIT's Single-Sign On service says that you're not authenticated!"
-            return flask.redirect(flask.url_for("error"))
-        flask.session["samlUserdata"] = auth.get_attributes()
-        flask.session["samlNameId"] = auth.get_nameid()
-        flask.session["samlSessionIndex"] = auth.get_session_index()
+            return flask.render_template(
+                "error.html.j2",
+                message="RIT's Single-Sign On service says that you're not authenticated!",
+            )
+        flask.session["saml_userdata"] = auth.get_attributes()
+        flask.session["saml_nameId"] = auth.get_nameid()
+        flask.session["saml_sessionIndex"] = auth.get_session_index()
+        flask.session["method"] = LoginMethod.SSO
+        flask.session["date"] = datetime.datetime.now()
         flask.session["username"] = flask.session["samlUserdata"].get(
             "urn:oid:0.9.2342.19200300.100.1.1"
         )[0]
-        flask.session["log_rows"] = 3
-        if not is_user(flask.session["username"]):
-            flask.session["last_error"] = (
-                "Unfortunately, you're not an authorized user of "
-                "this application."
+        logger.info(
+            "accepted login for {username} using SSO credentials".format(
+                username=auth.username
             )
-            return flask.redirect(flask.url_for("error"))
+        )
+        # TODO: is this necessary?
+        #         if not is_user(flask.session["username"]):
+        #             return flask.render_template("error.html.j2", message="You're not an authorized user of this application.")
         self_url = OneLogin_Saml2_Utils.get_self_url(req)
         if (
             "RelayState" in flask.request.form
@@ -192,8 +197,11 @@ def saml_acs():
         ):
             return flask.redirect(auth.redirect_to(flask.request.form["RelayState"]))
         else:
-            flask.session["last_error"] = "There was an error while handling the SAML response: " + str(auth.get_last_error_reason())
-            return flask.redirect(flask.url_for("error"))
+            return flask.render_template(
+                "error.html.j2",
+                message="There was an error while handling the SAML response: "
+                + str(auth.get_last_error_reason()),
+            )
 
 
 @bp.route("/saml/sls")

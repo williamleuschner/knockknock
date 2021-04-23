@@ -10,6 +10,7 @@ class Config:
 
     SECTION_LDAP = "LDAP"
     SECTION_SITE = "Site"
+    SECTION_SAML = "SAML"
     OPTION_URL = "url"
     OPTION_USERNAME = "username"
     OPTION_PASSWORD = "password"
@@ -20,13 +21,14 @@ class Config:
     OPTION_LONG_DEPT = "long_department_name"
     OPTION_SHORT_ORG = "short_organization_name"
     OPTION_LONG_ORG = "long_organization_name"
+    OPTION_SAML_CONFIG = "config_dir"
 
     @staticmethod
     def validate(parser):
         """Validate that all of the required keys are present in a config."""
         errors = []
         # Verify sections are present.
-        sections = [Config.SECTION_LDAP, Config.SECTION_SITE]
+        sections = [Config.SECTION_LDAP, Config.SECTION_SITE, Config.SECTION_SAML]
         for section in sections:
             if not parser.has_section(section):
                 errors.append("missing required section: {}".format(section))
@@ -46,6 +48,9 @@ class Config:
             Config.OPTION_SHORT_ORG,
             Config.OPTION_LONG_ORG,
         ]
+        saml_options = [
+            Config.OPTION_SAML_CONFIG,
+        ]
         for option in ldap_options:
             if not parser.has_option(Config.SECTION_LDAP, option):
                 errors.append(
@@ -58,6 +63,13 @@ class Config:
                 errors.append(
                     "missing required option in {} section: {}".format(
                         Config.SECTION_SITE, option
+                    )
+                )
+        for option in saml_options:
+            if not parser.has_option(Config.SECTION_SAML, option):
+                errors.append(
+                    "missing required option in {} section: {}".format(
+                        Config.SECTION_SAML, option
                     )
                 )
         if not parser.has_option(Config.SECTION_LDAP, Config.OPTION_NO_CERT_CHECK):
@@ -88,4 +100,7 @@ class Config:
             ]
             self.site_long_org_name = parser[Config.SECTION_SITE][
                 Config.OPTION_LONG_ORG
+            ]
+            self.saml_config_dir = parser[Config.SECTION_SAML][
+                Config.OPTION_SAML_CONFIG
             ]

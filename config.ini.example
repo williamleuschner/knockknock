@@ -55,18 +55,6 @@
 # No default, value required.
 ;filter=
 
-# Use extremely weak ciphers (such as TLSv1.0 and SSLv2).  This exists because
-# when this software was written, one of the servers required this option.
-# Please do not ever set this.
-# Default False, value optional.
-;use_extremely_weak_ciphers=
-
-# Disable certificate checks.  Only ever set this to True when you're testing
-# something.  If you set this to True in production, you are responsible for the
-# inevitable compromise that will result.
-# Default False, value optional.
-;no_certificate_checks=
-
 # Configure settings for strings used in the web pages.
 [Site]
 # The abbreviated version of the name of the department for which this tool will
@@ -104,3 +92,13 @@
 #
 # No default, value required.
 ;long_organization_name=
+
+# Configure settings for the SAML library
+[SAML]
+# The directory where the settings.json file for OneLogin's SAML library
+# resides.
+# Example:
+#   /var/www/etc/knockknock/
+#
+# No default, value required.
+;config_dir=
