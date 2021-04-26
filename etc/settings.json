@@ -1,0 +1,39 @@
+{
+    "strict": false,
+    "debug": true,
+    "sp": {
+        "entityId": "https://knockknock.se.rit.edu/Shibboleth.sso",
+        "assertionConsumerService": {
+            "url": "https://knockknock.se.rit.edu/auth/saml/acs",
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
+        },
+        "singleLogoutService": {
+            "url": "https://knockknock.se.rit.edu/auth/saml/sls",
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
+        },
+        "NameIDFormat": "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+        "attributeConsumingService": {
+            "serviceName": "KnockKnock",
+            "serviceDescription": "Password resets for SE students and faculty.",
+            "requestedAttributes": [
+                {
+                    "name": "urn:oid:0.9.2342.19200300.100.1.1",
+                    "isRequired": true,
+                    "friendlyName": "uid"
+                }
+            ]
+        }
+    },
+    "idp": {
+        "entityId": "https://shibboleth.main.ad.rit.edu/idp/shibboleth",
+        "singleSignOnService": {
+            "url": "https://shibboleth.main.ad.rit.edu/idp/profile/SAML2/Redirect/SSO",
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
+        },
+        "singleLogoutService": {
+            "url": "https://shibboleth.main.ad.rit.edu/logout.html?logout=1",
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
+        },
+        "x509cert": "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"
+    }
+}

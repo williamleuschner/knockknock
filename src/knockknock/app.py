@@ -19,7 +19,7 @@ app.register_blueprint(knockknock.auth.bp)
 #     SESSION_COOKIE_SECURE=True,
 #     SESSION_COOKIE_SAMESITE="Strict",
 # )
-config = knockknock.config.Config("./config.ini")
+config = knockknock.config.Config("../../etc/config.ini")
 
 
 def get_active_config():
